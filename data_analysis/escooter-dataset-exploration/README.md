@@ -11,7 +11,7 @@ First look at the two field recordings (sidewalk and asphalt) and a comparison o
 | File | Description |
 |---|---|
 | `dataset_exploration.ipynb` | Data check and method comparison, one commented cell per step |
-| `results/` | Vibration signals saved for Unity (created when the notebook runs) |
+| `results/` | Figures and the vibration signals saved for Unity (created when the notebook runs) |
 
 ## How to run
 
@@ -34,7 +34,7 @@ The notebook reads the CSV files from `data_dir` (cell 1), currently `~/Desktop/
 | 9–11 | Three candidate vibration magnitudes (`|az|`, `sqrt(ay² + az²)`, `sqrt(ax² + ay² + az²)`) for both gravity-removal methods, smoothed with a 1-s moving average |
 | 12 | Global min–max normalization over both recordings (keeps the intensity difference between surfaces) |
 | 13–14 | Smoothstep threshold (0.15 → 0.3) to suppress low-level noise |
-| 15 | Save `time_sec`, `vibration_norm`, `vibration_threshold` per surface to `results/` |
+| 15 | Save `time_sec`, `vibration_norm`, `vibration_threshold` per surface to `results/` (all figures are saved there too) |
 
 ## Observations
 
