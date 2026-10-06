@@ -1,468 +1,117 @@
-# WBC-MTL-SEGCLS 🔬
+# Quantitative Validation of Field Vibration
 
-**Multi-task White Blood Cell segmentation and classification using U-Net ResNet34**
-Simultaneous pixel-wise segmentation and cell-type classification in a single forward pass.
+Signal-processing and validation pipeline for the VR e-scooter simulator with field-derived surface vibration.
+It implements **Phase 2 (signal processing)** and the field part of **Phase 4.5 (surface separability)** of the *Quantitative Validation* plan.
 
----
+The notebook answers two questions:
 
-# Overview
-
-<p align="center">
-  <img src="assets/gradcam_examples.png" width="500">
-</p>
-<p align="center">
-  <em>Grad-CAM heatmaps showing regions that most strongly influence the model's classification predictions.</em>
-</p>
-
-WBC-MTL-SEGCLS is a multi-task deep learning framework for automated White Blood Cell analysis from microscopy images. The project jointly performs two tasks in a single forward pass:
-
-- **Segmentation** — pixel-wise labeling of nucleus, cytoplasm, and background
-- **Classification** — cell-type identification across four WBC categories: Lymphocyte, Monocyte, Neutrophil, and Eosinophil
-
-The pipeline is implemented in PyTorch and leverages transfer learning with a pretrained ResNet-34 backbone integrated into a U-Net decoder architecture. Unlike single-task approaches, WBC-MTL-SEGCLS shares a common encoder between both tasks, enabling efficient joint learning and improved feature representations.
-
-The framework includes preprocessing, augmentation with minority-class handling, multi-task training, evaluation, Grad-CAM explainability, and checkpoint saving for reproducible and deployment-ready workflows.
+1. What does real e-scooter vibration look like on sidewalk and asphalt, and how do the two surfaces differ?
+2. How much of that real vibration is kept in the signal currently sent to Unity?
 
 ---
 
-# Features
-
-## WBC Image Preprocessing
-
-Input microscopy images are resized and normalized using ImageNet statistics for compatibility with the pretrained ResNet-34 backbone.
-
-The preprocessing pipeline includes:
-
-- Image resizing to 256×256
-- RGB conversion
-- Grayscale mask parsing and class mapping
-- Tensor normalization via Albumentations
-
-These preprocessing operations ensure stable training behavior and consistent input representation across all dataset splits.
-
----
-
-## Data Augmentation
-
-To improve generalization and address class imbalance, two augmentation pipelines are applied during training.
-
-**Standard augmentation** (applied to all training samples):
-- Horizontal flip
-- Random 90° rotation
-- Shift, scale, and rotate
-- Random brightness and contrast adjustment
-
-**Minority-class augmentation** (applied to the two least-represented classes):
-- Stronger horizontal flip probability
-- Higher rotation and affine intensity
-- Gaussian blur
-
-These augmentations help the model learn robust morphological features under varying staining conditions and improve performance on underrepresented cell types.
-
----
-
-## Multi-Task Architecture — UNetResNet34MultiTask
-
-WBC-MTL-SEGCLS uses a pretrained ResNet-34 backbone as a shared encoder, combined with a 4-stage U-Net decoder for segmentation and a classification head operating on the bottleneck features.
-
-```
-Input image (256×256 RGB)
-        │
-   ResNet-34 Encoder (ImageNet pre-trained)
-   enc0 → enc1 → enc2 → enc3 → enc4
-        │
-   Bottleneck (1024-ch Conv layers)
-   ┌────┴──────────────────────────────────┐
-   │  U-Net Decoder (4 skip connections)  │   GlobalAvgPool → FC
-   │  dec4 → dec3 → dec2 → dec1           │
-   └───────────────────────────────────────┘
-        │                                       │
-  Segmentation head (3 classes)     Classification head (4 classes)
-  nucleus / cytoplasm / background  Lymphocyte / Monocyte / Neutrophil / Eosinophil
-```
-
-The segmentation head produces full-resolution pixel-wise predictions. The classification head pools the bottleneck representation and passes it through a fully connected layer. Both heads are trained jointly with a combined loss.
-
----
-
-## Multi-Task Loss
-
-Both tasks are optimized simultaneously using a weighted combination of cross-entropy losses:
-
-```
-L = L_seg + 0.7 × L_cls
-```
-
-The segmentation loss receives full weight while the classification loss is scaled by 0.7, balancing the contribution of each task during training.
-
----
-
-## Class Imbalance Handling
-
-To address unequal class distributions in the training set, the framework applies two complementary strategies:
-
-- **WeightedRandomSampler** — each training sample is weighted inversely proportional to its class frequency, ensuring all classes are seen equally during training
-- **Minority-class augmentation** — the two least-represented classes receive a heavier augmentation pipeline with stronger flips, rotations, and blur
-
-These strategies together reduce bias toward majority classes and improve recall on underrepresented WBC types.
-
----
-
-## Evaluation Metrics
-
-The framework provides comprehensive evaluation metrics to assess both tasks.
-
-**Classification metrics:**
-- Accuracy
-- Precision (weighted)
-- Recall (weighted)
-- F1-score (weighted)
-- Full per-class classification report
-
-**Segmentation metric:**
-- Mean Dice score over foreground classes (nucleus + cytoplasm)
-
-These metrics provide both global and class-wise performance analysis, enabling reliable evaluation of diagnostic capability and model generalization.
-
----
-
-## Visualization Utilities
-
-WBC-MTL-SEGCLS includes visualization modules for qualitative model evaluation and explainability analysis.
-
-### Segmentation Visualization
-
-Side-by-side comparison of:
-- Original microscopy image
-- Ground-truth segmentation mask
-- Predicted segmentation mask
-
-Color mapping used:
-| Color | Class |
-|-------|-------|
-| Black | Background |
-| Green | Nucleus |
-| Red | Cytoplasm |
-
-### Classification Prediction Visualization
-
-The framework visualizes sampled test predictions split into:
-- Correctly classified samples (green title)
-- Incorrectly classified samples (red title)
-
-### Grad-CAM Explainability
-
-Grad-CAM heatmaps are generated using forward and backward hooks on the bottleneck layer (`model.center`). The heatmap is overlaid on the original image to show which regions most strongly influence the classification decision.
-
-This enables interpretable deep learning analysis and provides insight into learned morphological features, improving transparency in the cell-type identification process.
-
----
-
-## Model Checkpoint Support
-
-The project supports saving and loading trained model checkpoints for:
-- Model reuse
-- Inference
-- Fine-tuning
-- Continued training
-- Reproducibility
-
-Trained checkpoints can be found inside:
-
-```text
-models/checkpoints/
-```
-
-The checkpoint file stores:
-- Trained model weights
-- Optimizer state
-- Training epoch
-- Model configuration (`n_classes_seg`, `n_classes_cls`)
-- Class names
-- Label encoder classes
-- Final evaluation metrics
-
-This allows the model to be reused without retraining from scratch and enables reproducible experimentation across environments.
-
----
-
-# Dataset
-
-The framework uses the [segmentation_WBC](https://github.com/zxaoyou/segmentation_WBC) dataset, which contains two subsets of microscopy images with paired grayscale segmentation masks and CSV class label files.
-
-```text
-segmentation_WBC/
-│
-├── Dataset 1/
-│   ├── 001.bmp        ← microscopy image
-│   ├── 001.png        ← segmentation mask
-│   └── ...
-│
-├── Dataset 2/
-│   ├── 001.bmp
-│   ├── 001.png
-│   └── ...
-│
-├── Class Labels of Dataset 1.csv
-└── Class Labels of Dataset 2.csv
-```
-
-Mask pixel value mapping:
-
-| Pixel value | Class |
-|-------------|-------|
-| 0 | Background |
-| 128 | Nucleus |
-| 255 | Cytoplasm |
-
-Cell-type class labels:
-
-| Label | Class name |
-|-------|------------|
-| 1 | Lymphocyte |
-| 2 | Monocyte |
-| 3 | Neutrophil |
-| 4 | Eosinophil |
-
-> Dataset images and CSVs are **not** included in this repository. Clone or download them from the link above and set `BASE_PATH` in `configs/config.py` to your local dataset root.
-
-Classes with fewer than 20 samples are automatically filtered out. Samples with missing image or mask files are dropped before training.
-
----
-
-# Dataset Split
-
-The dataset is automatically divided into:
-
-- **80%** Training
-- **20%** Testing
-
-Stratified splitting is used to preserve class balance across both subsets and ensure fair evaluation.
-
----
-
-# Training Pipeline
-
-The complete training workflow includes:
-
-- Dataset loading and CSV merging
-- Class filtering and label encoding
-- Stratified train/test split
-- WeightedRandomSampler construction
-- Dual augmentation pipeline (standard + minority)
-- Multi-task U-Net ResNet34 initialization with ImageNet weights
-- Joint segmentation and classification training
-- Per-epoch loss and accuracy reporting
-- Final evaluation on test set
-- Segmentation visualization
-- Classification prediction visualization
-- Grad-CAM explainability
-- Checkpoint saving
-
-The modular pipeline design allows easy experimentation and extension to additional WBC categories or alternative encoder architectures.
-
----
-
-# Performance
-
-The final model achieved the following performance on the test set:
-
-### Classification
-
-```text
-Accuracy : 0.8481
-Precision: 0.8816
-Recall   : 0.8481
-F1-score : 0.8554
-```
-
-### Segmentation
-
-```text
-Dice (mean foreground): 0.9171
-```
-
-### Per-class Classification Report
-
-```text
-              precision    recall  f1-score   support
-
-  Lymphocyte       1.00      0.88      0.94        41
-    Monocyte       0.87      0.72      0.79        18
-  Neutrophil       0.60      0.92      0.73        13
-  Eosinophil       0.75      0.86      0.80         7
-
-    accuracy                           0.85        79
-   macro avg       0.80      0.85      0.81        79
-weighted avg       0.88      0.85      0.86        79
-```
-
-The model demonstrates strong segmentation performance (Dice 0.917) and reliable classification across all four WBC categories, with near-perfect precision on Lymphocytes.
-
----
-
-# Requirements
-
-The following libraries are required:
-
-```text
-Python >= 3.9
-torch >= 2.2.0
-torchvision >= 0.17.0
-numpy >= 1.24
-pandas >= 2.0
-scikit-learn >= 1.3
-albumentations >= 1.4
-Pillow >= 10.0
-opencv-python >= 4.9
-matplotlib >= 3.8
-```
-
-Install dependencies via:
+## Contents
+
+| File | Description |
+|---|---|
+| `quantitative_validation.ipynb` | Full pipeline, one commented cell per step |
+| `requirements.txt` | Python dependencies |
+| `results/` | Figures and tables produced by the notebook |
+
+## How to run
 
 ```bash
 pip install -r requirements.txt
+jupyter notebook quantitative_validation.ipynb
 ```
+
+Run the notebook from this folder (*Restart & Run All*). Tested with Python 3.11.
 
 ---
 
-# Quick Start
+## Input data
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/<you>/WBC-MTL-SEGCLS.git
-cd WBC-MTL-SEGCLS
+The notebook reads the recording CSV files from `data_dir` (cell 1), currently `~/Desktop/scooter_pro`. Change it to the folder where the CSV files are on your machine.
 
-# 2. Install dependencies
-pip install -r requirements.txt
+Each recording is one CSV with at least these columns:
 
-# 3. Download the dataset
-#    https://github.com/zxaoyou/segmentation_WBC
+| Column | Unit | Description |
+|---|---|---|
+| `time_sec` | s | elapsed time since the start of the recording |
+| `ax`, `ay`, `az` | m/s² | linear acceleration from the IMU (Intel RealSense D435i) |
+| `speed_mps` *(optional)* | m/s | scooter speed; if present, distance and events per 100 m are added |
 
-# 4. Set your dataset path
-#    Open configs/config.py and update BASE_PATH
-
-# 5. Train and evaluate
-python main.py
-```
+Current recordings: `imu_accel_sidewalk_cafe.csv` (sidewalk) and `imu_accel_cafe_asphalt.csv` (asphalt), ~200 Hz.
 
 ---
 
-# Project Structure
+## Usage with new data
 
-```text
-WBC-MTL-SEGCLS/
-│
-├── models/
-│   ├── model.py              # UNetResNet34MultiTask
-│   ├── gradcam.py            # GradCAM class + show_gradcam visualization
-│   └── checkpoints/
-│       └── README.md         # How to load a saved checkpoint
-│
-├── data/
-│   ├── dataset.py            # WBCDataset (image + mask + label)
-│   ├── transforms.py         # Albumentations pipelines (train / minority / test)
-│   ├── prepare_data.py       # CSV merge, filtering, label encoding, split
-│   └── label_utils.py        # normalize_id, convert_mask
-│
-├── src/
-│   ├── train.py              # Training loop (seg + cls joint loss)
-│   ├── eval.py               # Metrics + classification report + confusion matrix
-│   ├── metrics.py            # dice_score
-│   ├── losses.py             # CrossEntropyLoss (extensible to Dice / Focal)
-│   ├── sampler.py            # WeightedRandomSampler builder
-│   ├── visualize.py          # show_results, show_predictions
-│   └── utils.py              # print_distribution, build_idx_to_label
-│
-├── configs/
-│   └── config.py             # All paths, hyperparameters, class names, colours
-│
-├── assets/                   # Output figures (not tracked by Git)
-├── main.py                   # Entry point (train + eval + visualize + save)
-├── requirements.txt
-├── .gitignore
-├── LICENSE
-└── README.md
-```
-
----
-
-# Checkpoints
-
-The trained model checkpoint is saved to:
-
-```text
-models/checkpoints/wbc_multitask_checkpoint.ckpt
-```
-
-Loading the checkpoint:
+Only **cell 1** needs to change:
 
 ```python
-import torch
-from models.model import UNetResNet34MultiTask
-
-ckpt  = torch.load('models/checkpoints/wbc_multitask_checkpoint.ckpt', map_location='cpu')
-model = UNetResNet34MultiTask(**ckpt['model_config'])
-model.load_state_dict(ckpt['model_state_dict'])
-model.eval()
+data_dir = Path.home() / "Desktop" / "scooter_pro"         # folder with the CSV files
+files = {"F001": "F001.csv", "F002": "F002.csv"}          # field runs
+surface = {"F001": "Sidewalk", "F002": "Asphalt"}          # surface of each run
+calib_files = {"F001": "calib_F001.csv"}                   # optional, Phase 0.2
 ```
 
----
+Then *Run All*.
 
-# Visualization
-
-To improve interpretability and qualitative evaluation, the project includes multiple visualization utilities.
-
-### Segmentation Samples
-
-<p align="center">
-  <img src="assets/segmentation_samples.png" width="600">
-</p>
-
-_Side-by-side comparison of original image, ground-truth mask, and predicted mask for test samples._
+All tunable parameters (filter cut-offs, bands, thresholds, window lengths) are in **cell 2**.
 
 ---
 
-### Classification Predictions
+## Pipeline
 
-<p align="center">
-  <img src="assets/prediction_results.png" width="600">
-</p>
+| Section | Step | Plan phase |
+|---|---|---|
+| 3 | Load data, check sampling rate, timing gaps, missing values, mean gravity | — |
+| 4 | Rotation to the scooter frame from a stationary calibration recording | 0.2 |
+| 5 | Split at timing gaps, resample to 200 Hz, remove gravity (0.3 Hz low-pass), band-limit 0.5–80 Hz (zero-phase), vibration magnitude `v = sqrt(ay² + az²)`, Kalman envelope (display only) | 2.1–2.4 |
+| 6 | Motion mask: remove stationary intervals (automatic threshold on 1-s RMS) | — |
+| 7 | Welch PSD, peak frequency, spectral centroid, band RMS (0.5–5, 5–20, 20–80 Hz) | 2.5 |
+| 8 | Event detection (sharp hits) | 2.5 |
+| 9 | Phase 2 output table (one row per run) | 2 |
+| 10 | PSD and time-series figures | — |
+| 11–12 | Surface separability in the field: Cohen's d, Welch t-test, Mann–Whitney U | 4.5 |
+| 13–14 | Spectral content of the current Unity command vs. real vibration; Kalman frequency response | — |
 
-_Correctly classified samples (green) and incorrectly classified samples (red) drawn from the test set._
+### Implementation notes
 
----
-
-### Confusion Matrix
-
-<p align="center">
-  <img src="assets/confusion_matrix.png" width="400">
-</p>
-
-_Per-class classification performance across all four WBC categories._
-
----
-
-### Grad-CAM Explainability
-
-<p align="center">
-  <img src="assets/gradcam_examples.png" width="500">
-</p>
-
-_Grad-CAM heatmaps overlaid on test images showing which morphological regions drive the model's classification decisions._
+- **Spectral features are computed before Kalman smoothing.** With `q = 1e-4`, `r = 1e-2` the Kalman filter is equivalent to a first-order low-pass at ≈ 3.2 Hz and would remove the 5–20 and 20–80 Hz bands.
+- **PSD is computed on the axes (`P_y + P_z`), not on the magnitude `v`.** `v` is rectified (always ≥ 0), which adds artificial low-frequency and harmonic energy to its spectrum.
+- **Recordings are split at timing gaps** (> 50 ms) and each piece is resampled to a uniform grid before filtering, instead of interpolating across gaps.
+- **Gravity filter coefficient:** `α = 1 / (1 + 2π·fc/fs)` ≈ 0.9907 for `fs = 200 Hz` (the plan's 0.9925 assumes 250 Hz).
 
 ---
 
-# Notes
+## Outputs (`results/`)
 
-- The project supports CUDA and CPU execution (device is auto-detected).
-- Grad-CAM is implemented using forward and backward hooks on `model.center` (the bottleneck layer).
-- The framework is modular and can be extended to additional WBC categories or alternative encoder architectures.
-- Dataset images and CSV files are not tracked by Git (see `.gitignore`).
-- Model checkpoints (`.ckpt`) are not tracked by Git.
+| File | Content |
+|---|---|
+| `phase2_output.csv` | Phase 2 table: moving time, `a_RMS`, `f_peak`, `f_c`, band RMS, events |
+| `field_window_metrics.csv` | Window-level metrics used for the statistics |
+| `field_separability.csv` | Cohen's d, t-test and Mann–Whitney results |
+| `field_vs_command_band_fractions.csv` | Band power fractions: real vibration vs. Unity command |
+| `*.png` | All figures |
 
 ---
 
-# License
+## Preliminary results (current recordings)
 
-MIT
+| | Sidewalk | Asphalt |
+|---|---|---|
+| Moving time | 325.7 s (59 %) | 177.2 s (31 %) |
+| `a_RMS` (m/s²) | 8.91 | 8.89 |
+| Peak frequency | 30.5 Hz | 31.5 Hz |
+| Events per second (provisional threshold) | 0.70 | 0.36 |
+
+- **While moving, vibration intensity is nearly identical on both surfaces** (Cohen's d ≈ 0.06 for `a_RMS`, 0.04–0.06 for the mid and high bands; 0.31 for the low band).
+- **The main difference is the rate of sharp events**, about twice as high on the sidewalk.
+- **About 70 % of the asphalt recording is stationary**, which explains most of the apparent intensity difference when stationary periods are not removed.
+- **About 76 % of real vibration power is above 20 Hz, while about 86 % of the current Unity command's power is below 5 Hz.**
+
+### Limitations
+
+One recording per surface, unmatched speeds, and a handlebar-mounted sensor (steering rotation and handlebar resonance enter the signal). Window-level p-values are optimistic because adjacent windows are correlated. Event thresholds are provisional until tuned on a known-defect segment. These results should be treated as preliminary; the planned deck-mounted, speed-controlled recordings address these limitations.
