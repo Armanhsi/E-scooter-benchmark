@@ -1,0 +1,30 @@
+# Large recorded ride data
+bags/
+*.db3
+*.db3-shm
+*.db3-wal
+*.mcap
+
+# Generated logs and temporary recorder launchers
+ros_logs/
+*.log
+*.pid
+
+# Generated analysis outputs and previews
+analysis/
+previews/
+share/
+
+# Python and editor cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
