@@ -141,7 +141,7 @@ The 4-recording version reached accuracy 0.816; with more recordings to train on
 
 ![Routes and IMU predictions](results/surface_map.png)
 
-**[Open the interactive map](https://htmlpreview.github.io/?https://github.com/Armanhsi/E-scooter-benchmark/blob/main/imu_analysis/escooter-surface-classification-full/results/surface_map.html)** (layers can be switched on and off in the top-right box).
+**[Open the interactive map](https://raw.githack.com/Armanhsi/E-scooter-benchmark/main/imu_analysis/escooter-surface-classification-full/results/surface_map.html)** (layers can be switched on and off in the top-right box).
 If the link does not open, download `results/surface_map.html` and open it in a browser.
 
 ### Limitations
