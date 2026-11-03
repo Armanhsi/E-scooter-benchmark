@@ -135,6 +135,7 @@ The 4-recording version reached accuracy 0.816; with more recordings to train on
 | `results/results_summary.png` | Recall per recording, confusion matrix, vibration spectrum |
 | `results/results_timelines.png` | IMU prediction over time vs camera label for each recording |
 | `results/results_frames_grid.png` | Camera frames next to correct and wrong IMU predictions |
+| `results/surface_map.html` | Interactive map: routes, camera labels, IMU predictions and errors. GitHub shows only its code; download it and open it in a browser (background tiles from Esri, no key needed) |
 
 ### Limitations
 
