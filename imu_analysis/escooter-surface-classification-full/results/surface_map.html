@@ -79,8 +79,8 @@
         
     
             var tile_layer_a4d98152a077c84a1b417b2220c8e5fc = L.tileLayer(
-                "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
-                {"maxNativeZoom": 16, "minZoom": 0,
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {"maxNativeZoom": 19, "minZoom": 0,
   "maxZoom": 19,
   "noWrap": false,
   "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors \u0026copy; \u003ca href=\"https://carto.com/attributions\"\u003eCARTO\u003c/a\u003e",
@@ -23487,8 +23487,8 @@
     
             var layer_control_430a5c4ede5f35e70588e2c2bf2e0e3c_layers = {
                 base_layers : {
-                    "light map" : tile_layer_a4d98152a077c84a1b417b2220c8e5fc,
-                    "street map" : tile_layer_e576bfd13e016f303e3543c93eea867d,
+                    "street map (OpenStreetMap)" : tile_layer_a4d98152a077c84a1b417b2220c8e5fc,
+                    "street map (Esri)" : tile_layer_e576bfd13e016f303e3543c93eea867d,
                 },
                 overlays :  {
                     "route: lab_to_home (scooter GPS)" : feature_group_f92322436ac18230b6ce3329452f8d86,
