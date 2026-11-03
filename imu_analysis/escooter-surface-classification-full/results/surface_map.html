@@ -80,10 +80,8 @@
     
             var tile_layer_a4d98152a077c84a1b417b2220c8e5fc = L.tileLayer(
                 "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
-                {
-  "minZoom": 0,
-  "maxZoom": 20,
-  "maxNativeZoom": 20,
+                {"maxNativeZoom": 16, "minZoom": 0,
+  "maxZoom": 19,
   "noWrap": false,
   "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors \u0026copy; \u003ca href=\"https://carto.com/attributions\"\u003eCARTO\u003c/a\u003e",
   "subdomains": "abcd",
@@ -100,10 +98,8 @@
     
             var tile_layer_e576bfd13e016f303e3543c93eea867d = L.tileLayer(
                 "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
-                {
-  "minZoom": 0,
+                {"maxNativeZoom": 18, "minZoom": 0,
   "maxZoom": 19,
-  "maxNativeZoom": 19,
   "noWrap": false,
   "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
   "subdomains": "abc",
