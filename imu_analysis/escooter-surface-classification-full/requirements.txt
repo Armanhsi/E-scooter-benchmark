@@ -1,0 +1,11 @@
+rosbags
+numpy
+pandas
+scipy
+matplotlib
+pillow
+torch
+transformers
+scikit-learn
+ipywidgets
+folium
